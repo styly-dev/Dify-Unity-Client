@@ -5,9 +5,31 @@ using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using System.Collections;
 using System.Text.RegularExpressions;
+using UnityEngine.Events;
 
 public class DifyManager : MonoBehaviour
 {
+
+    [System.Serializable]
+    public class StringEvent : UnityEvent<string> { }
+    public StringEvent OnMessage;
+
+    [System.Serializable]
+    public class DifyEvent : UnityEvent<JObject> { }
+    public DifyEvent Event_message;
+    public DifyEvent Event_message_file;
+    public DifyEvent Event_message_end;
+    public DifyEvent Event_tts_message;
+    public DifyEvent Event_tts_message_end;
+    public DifyEvent Event_message_replace;
+    public DifyEvent Event_workflow_started;
+    public DifyEvent Event_node_started;
+    public DifyEvent Event_node_finished;
+    public DifyEvent Event_workflow_finished;
+    public DifyEvent Event_error;
+    public DifyEvent Event_ping;
+
+
     private DifyApiClient difyClient;
     private readonly Queue<string> _stringQueue = new();
 
@@ -21,6 +43,10 @@ public class DifyManager : MonoBehaviour
     private string difyAppKey = "";
     [SerializeField]
     private string difyUserId = "";
+
+    public void Test(string x){
+        
+    }
 
     void Start()
     {
@@ -38,7 +64,7 @@ public class DifyManager : MonoBehaviour
 
         // Texture2D texture = gameObject.GetComponent<Renderer>().material.mainTexture as Texture2D;
         // SendChatMessageExample_Straming("何が写ってますか？",texture);
-        
+
 
         StartCoroutine(PlayAudioClipsContinuously());
         StartCoroutine(ProcessReceivedDataFromDifyInTheMainThread());
@@ -70,16 +96,10 @@ public class DifyManager : MonoBehaviour
     {
         while (true)
         {
-            if (_stringQueue.Count == 0)
-            {
-                yield return null;
-            }
-            else
-            {
-                string command = _stringQueue.Dequeue();
-                DifyOnStreamingEventReceivedCallBack(command);
-                yield return null;
-            }
+            if (_stringQueue.Count == 0) { yield return null; continue; }
+            string command = _stringQueue.Dequeue();
+            DifyOnStreamingEventReceivedCallBack(command);
+            yield return null;
         }
     }
 
@@ -100,9 +120,9 @@ public class DifyManager : MonoBehaviour
         }
     }
 
-    private void SendChatMessageExample_Straming(string query,Texture2D texture = null)
+    private void SendChatMessageExample_Straming(string query, Texture2D texture = null)
     {
-        difyClient.ChatMessage_streaming_start(query,texture);
+        difyClient.ChatMessage_streaming_start(query, texture);
     }
 
     // public void SendChatMessage(string query, ){
@@ -127,18 +147,48 @@ public class DifyManager : MonoBehaviour
         JObject json = JObject.Parse(jsonString);
         string eventValue = json["event"].ToString();
 
-// Debug.Log(jsonString);
+        // Debug.Log(jsonString);
 
         switch (eventValue)
         {
             case "message":
+                Event_message.Invoke(json);
                 ProcessEvent_message(json);
                 break;
+            case "message_file":
+                Event_message_file.Invoke(json);
+                break;
+            case "message_end":
+                Event_message_end.Invoke(json);
+                break;
             case "tts_message":
+                Event_tts_message.Invoke(json);
                 ProcessEvent_tts_message(json);
                 break;
             case "tts_message_end":
+                Event_tts_message_end.Invoke(json);
                 ProcessEvent_tts_message_end(json);
+                break;
+            case "message_replace":
+                Event_message_replace.Invoke(json);
+                break;
+            case "workflow_started":
+                Event_workflow_started.Invoke(json);
+                break;
+            case "node_started":
+                Event_node_started.Invoke(json);
+                break;
+            case "node_finished":
+                Event_node_finished.Invoke(json);
+                break;
+            case "workflow_finished":
+                Event_workflow_finished.Invoke(json);
+                break;
+            case "error":
+                Event_error.Invoke(json);
+                break;
+            case "ping":
+                Event_ping.Invoke(json);
                 break;
             default:
                 break;
@@ -147,7 +197,8 @@ public class DifyManager : MonoBehaviour
 
     private void ProcessEvent_message(JObject json)
     {
-        var answer = Regex.Unescape(json["answer"].ToString()).Replace("\n", "");
+        string answer = Regex.Unescape(json["answer"].ToString()).Replace("\n", "");
+        OnMessage.Invoke(answer);
         Debug.Log(answer);
     }
 
