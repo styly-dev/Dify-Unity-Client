@@ -24,12 +24,11 @@ public class DifyApiClient
     public delegate void OnEventReceived(string eventData);
     public event OnEventReceived EventReceived;
 
-    public DifyApiClient(GameObject gameObject, string serverUrl, string apiKey, string user, AudioSource audioSource = null)
+    public DifyApiClient(GameObject gameObject, string serverUrl, string apiKey, string user)
     {
         this.serverUrl = serverUrl;
         this.apiKey = apiKey;
         this.user = user;
-        // audioSource = audioSource ?? gameObject.AddComponent<AudioSource>();
     }
 
     private async Task<T> SendRequest<T>(UnityWebRequest request)

@@ -40,7 +40,7 @@ public class DifyManager : MonoBehaviour
     [SerializeField]
     private string difyApiURL = "";
     [SerializeField]
-    private string difyAppKey = "";
+    private string difyApiKey = "";
     [SerializeField]
     private string difyUserId = "";
 
@@ -51,7 +51,7 @@ public class DifyManager : MonoBehaviour
     void Start()
     {
         Debug.Log("Starting DifyManager");
-        difyClient = new DifyApiClient(this.gameObject, difyApiURL, difyAppKey, difyUserId);
+        difyClient = new DifyApiClient(this.gameObject, difyApiURL, difyApiKey, difyUserId);
         difyClient.EventReceived += EnqueueStreamingEventJsonReceivedFromDify;
         difyAudioSource = gameObject.AddComponent<AudioSource>();
         difyAudioSource.playOnAwake = false;
@@ -60,10 +60,10 @@ public class DifyManager : MonoBehaviour
 
 
 
-        SendChatMessageExample_Straming("旅行に行くならどこがおすすめ？10個の候補を上げて、それぞれについて詳しく説明してください。");
+        // SendChatMessageExample_Straming("旅行に行くならどこがおすすめ？10個の候補を上げて、それぞれについて詳しく説明してください。");
 
-        // Texture2D texture = gameObject.GetComponent<Renderer>().material.mainTexture as Texture2D;
-        // SendChatMessageExample_Straming("何が写ってますか？",texture);
+        Texture2D texture = gameObject.GetComponent<Renderer>().material.mainTexture as Texture2D;
+        SendChatMessageExample_Straming("何が写ってますか？",texture);
 
 
         StartCoroutine(PlayAudioClipsContinuously());
