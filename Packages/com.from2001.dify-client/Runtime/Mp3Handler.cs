@@ -12,6 +12,17 @@ public class Mp3Handler : MonoBehaviour
     private static readonly object audioBufferLock = new();
 
     /// <summary>
+    /// Clear the MP3 buffer
+    /// </summary> 
+    public static void ClearMp3Buffer()
+    {
+        lock (audioBufferLock)
+        {
+            MP3Buffer = new byte[0];
+        }
+    }
+
+    /// <summary>
     /// Add base64 encoded MP3 data to the MP3 buffer. Then get the AudioClip if the buffer size exceeds 80kb. 
     public static AudioClip AddDataToMp3Buffer(string base64Chunk)
     {

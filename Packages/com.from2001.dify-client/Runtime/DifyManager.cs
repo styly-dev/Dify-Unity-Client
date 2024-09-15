@@ -131,6 +131,7 @@ public class DifyManager : MonoBehaviour
     /// </summary>
     public void SendChatMessage_Streaming(string query, Texture2D texture = null)
     {   
+        StopStreaming();
         difyMessageByChunk = "";
         difyClient.ChatMessage_streaming_start(query, texture);
     }
@@ -154,6 +155,22 @@ public class DifyManager : MonoBehaviour
         return response.answer;
     }
 
+    public void StopStreaming(){
+
+        Debug.Log("Stopping Streaming.....");
+
+        // Cancel
+        difyClient.ChatMessage_streaming_stop();
+
+        // Clear queue
+        _stringQueue.Clear();
+        audioClipQueue.Clear();
+        difyMessageByChunk = "";
+
+        // Stop Audio
+        difyAudioSource.Stop();
+        difyAudioSource.clip = null;
+    }
 
     /// <summary>
     /// Enqueue the event received from Dify in order to process it in the main thread
@@ -225,13 +242,11 @@ public class DifyManager : MonoBehaviour
         string answer = Regex.Unescape(json["answer"].ToString()).Replace("\n", "");
         OnDifyMessageChunk.Invoke(answer);
         difyMessageByChunk += answer;
-        Debug.Log(answer);
     }
 
     private void ProcessEvent_message_end(JObject json)
     {
         OnDifyMessage.Invoke(difyMessageByChunk);
-        Debug.Log("ProcessEvent_message_end: " + difyMessageByChunk);
     }
 
     /// <summary>
@@ -239,6 +254,7 @@ public class DifyManager : MonoBehaviour
     /// </summary>
     private void ProcessEvent_tts_message(JObject json)
     {
+        Debug.Log("Processing TTS message: " + json);
         lock (audioBufferLock)
         {
             string base64Chunk = json["audio"].ToString();

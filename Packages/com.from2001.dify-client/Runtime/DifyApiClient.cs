@@ -54,16 +54,16 @@ public class DifyApiClient
 
     public void ChatMessage_streaming_stop()
     {
-        cancellationTokenSource.Cancel();
+        if(cancellationTokenSource != null){cancellationTokenSource.Cancel();}
+        Mp3Handler.ClearMp3Buffer();
 
-        // Todo
-        // Stop Streaming
+        // Stop generating messages
+        // _ = StopGenerate(current_task_id);
     }
 
     /// <summary>
     /// Start a streaming chat message to Dify API
     /// </summary>
-    /// <param name="query"></pa    /// //  
     public async void ChatMessage_streaming_start(string query, Texture2D texture = null)
     {
         if (texture == null)
@@ -236,7 +236,7 @@ public class DifyApiClient
     /// <summary>
     /// Stop generating messages
     /// </summary> 
-    public async Task<string> StopGenerate(string taskId)
+    public async Task<bool> StopGenerate(string taskId)
     {
         string url = $"{serverUrl}/chat-messages/{taskId}/stop";
         string jsonBody = JsonConvert.SerializeObject(new { user = user });
@@ -249,7 +249,7 @@ public class DifyApiClient
             webRequest.SetRequestHeader("Content-Type", "application/json");
 
             await SendRequest<object>(webRequest);
-            return "Generation stopped successfully";
+            return true;
         }
     }
 
