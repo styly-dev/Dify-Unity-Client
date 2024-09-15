@@ -9,26 +9,54 @@ using UnityEngine.Events;
 
 public class DifyManager : MonoBehaviour
 {
+    [SerializeField]
+    private string difyApiURL = "https://xxxxxxxxxxx/v1";
+    [SerializeField]
+    private string difyApiKey = "app-xxxxxxxxxxxxxxxxxx";
+    [SerializeField]
+    private string difyUserId = "user-id";
 
-    [System.Serializable]
+    public string DifyApiURL
+    {
+        get { return difyApiURL; }
+        set { difyApiURL = value; difyClient.serverUrl = value; }
+    }
+
+    public string DifyApiKey
+    {
+        get { return difyApiKey; }
+        set { difyApiKey = value; difyClient.apiKey = value; }
+    }
+
+    public string DifyUserId
+    {
+        get { return difyUserId; }
+        set { difyUserId = value; difyClient.user = value; }
+    }
+
+    [Serializable]
     public class StringEvent : UnityEvent<string> { }
-    public StringEvent OnMessage;
+    [Serializable]
+    public class ChunkChatCompletionResponseEvent : UnityEvent<JObject> { }
 
-    [System.Serializable]
-    public class DifyEvent : UnityEvent<JObject> { }
-    public DifyEvent Event_message;
-    public DifyEvent Event_message_file;
-    public DifyEvent Event_message_end;
-    public DifyEvent Event_tts_message;
-    public DifyEvent Event_tts_message_end;
-    public DifyEvent Event_message_replace;
-    public DifyEvent Event_workflow_started;
-    public DifyEvent Event_node_started;
-    public DifyEvent Event_node_finished;
-    public DifyEvent Event_workflow_finished;
-    public DifyEvent Event_error;
-    public DifyEvent Event_ping;
+    // UnityEvent for OnMessage for both SendChatMessage_blocking and SendChatMessage_Streaming
+    public StringEvent OnDifyMessage;
+    public StringEvent OnDifyMessageChunk;
+    private string difyMessageByChunk = "";
 
+    // UnityEvents for Dify events of SendChatMessage_Streaming
+    public ChunkChatCompletionResponseEvent Event_message;
+    public ChunkChatCompletionResponseEvent Event_message_file;
+    public ChunkChatCompletionResponseEvent Event_message_end;
+    public ChunkChatCompletionResponseEvent Event_tts_message;
+    public ChunkChatCompletionResponseEvent Event_tts_message_end;
+    public ChunkChatCompletionResponseEvent Event_message_replace;
+    public ChunkChatCompletionResponseEvent Event_workflow_started;
+    public ChunkChatCompletionResponseEvent Event_node_started;
+    public ChunkChatCompletionResponseEvent Event_node_finished;
+    public ChunkChatCompletionResponseEvent Event_workflow_finished;
+    public ChunkChatCompletionResponseEvent Event_error;
+    public ChunkChatCompletionResponseEvent Event_ping;
 
     private DifyApiClient difyClient;
     private readonly Queue<string> _stringQueue = new();
@@ -37,37 +65,32 @@ public class DifyManager : MonoBehaviour
     private readonly Queue<AudioClip> audioClipQueue = new();
     private AudioSource difyAudioSource;
 
-    [SerializeField]
-    private string difyApiURL = "";
-    [SerializeField]
-    private string difyApiKey = "";
-    [SerializeField]
-    private string difyUserId = "";
-
-    public void Test(string x){
-        
-    }
-
     void Start()
     {
         Debug.Log("Starting DifyManager");
-        difyClient = new DifyApiClient(this.gameObject, difyApiURL, difyApiKey, difyUserId);
-        difyClient.EventReceived += EnqueueStreamingEventJsonReceivedFromDify;
-        difyAudioSource = gameObject.AddComponent<AudioSource>();
-        difyAudioSource.playOnAwake = false;
-        difyAudioSource.loop = false;
 
+        // Initialization
+        Initialization();
 
-
-
-        // SendChatMessageExample_Straming("旅行に行くならどこがおすすめ？10個の候補を上げて、それぞれについて詳しく説明してください。");
-
-        Texture2D texture = gameObject.GetComponent<Renderer>().material.mainTexture as Texture2D;
-        SendChatMessageExample_Straming("何が写ってますか？",texture);
-
-
+        // Start continuous coroutine processes
         StartCoroutine(PlayAudioClipsContinuously());
         StartCoroutine(ProcessReceivedDataFromDifyInTheMainThread());
+    }
+
+    /// <summary>
+    /// Initialization
+    /// <summary>
+    private void Initialization()
+    {
+        // Initialize Dify API client
+        difyClient = new DifyApiClient(this.gameObject, difyApiURL, difyApiKey, difyUserId);
+        difyClient.EventReceived += EnqueueStreamingEventJsonReceivedFromDify;
+
+        // Initialize audio source
+        difyAudioSource = gameObject.GetComponent<AudioSource>();
+        if (difyAudioSource == null) difyAudioSource = gameObject.AddComponent<AudioSource>();
+        difyAudioSource.playOnAwake = false;
+        difyAudioSource.loop = false;
     }
 
     /// <summary>
@@ -103,31 +126,34 @@ public class DifyManager : MonoBehaviour
         }
     }
 
-    private void Update()
-    {
-    }
-
-    private async Task SendChatMessageExample()
-    {
-        try
-        {
-            var response = await difyClient.ChatMessage_blocking("何が写ってますか？");
-            // Debug.Log($"Received response: {response.answer}");
-        }
-        catch (Exception)
-        {
-            // Debug.LogError($"An error occurred: {e.Message}");
-        }
-    }
-
-    private void SendChatMessageExample_Straming(string query, Texture2D texture = null)
-    {
+    /// <summary>
+    /// Send a chat message to Dify in streaming mode
+    /// </summary>
+    public void SendChatMessage_Streaming(string query, Texture2D texture = null)
+    {   
+        difyMessageByChunk = "";
         difyClient.ChatMessage_streaming_start(query, texture);
     }
 
-    // public void SendChatMessage(string query, ){
+    /// <summary>
+    /// Send a chat message to Dify in blocking mode
+    /// </summary> 
+    public void SendChatMessage_blocking(string query, Texture2D texture = null)
+    {
+        _ = SendChatMessage_blockingAsync(query, texture);
+    }
 
-    // }
+    /// <summary>
+    /// Send a chat message to Dify and wait for the response
+    /// <summary>
+    public async Task<string> SendChatMessage_blockingAsync(string query, Texture2D texture = null)
+    {
+        var response = await difyClient.ChatMessage_blocking_start(query, texture);
+        Debug.Log(response.answer);
+        OnDifyMessage.Invoke(response.answer);
+        return response.answer;
+    }
+
 
     /// <summary>
     /// Enqueue the event received from Dify in order to process it in the main thread
@@ -147,8 +173,6 @@ public class DifyManager : MonoBehaviour
         JObject json = JObject.Parse(jsonString);
         string eventValue = json["event"].ToString();
 
-        // Debug.Log(jsonString);
-
         switch (eventValue)
         {
             case "message":
@@ -160,6 +184,7 @@ public class DifyManager : MonoBehaviour
                 break;
             case "message_end":
                 Event_message_end.Invoke(json);
+                ProcessEvent_message_end(json);
                 break;
             case "tts_message":
                 Event_tts_message.Invoke(json);
@@ -198,10 +223,16 @@ public class DifyManager : MonoBehaviour
     private void ProcessEvent_message(JObject json)
     {
         string answer = Regex.Unescape(json["answer"].ToString()).Replace("\n", "");
-        OnMessage.Invoke(answer);
+        OnDifyMessageChunk.Invoke(answer);
+        difyMessageByChunk += answer;
         Debug.Log(answer);
     }
 
+    private void ProcessEvent_message_end(JObject json)
+    {
+        OnDifyMessage.Invoke(difyMessageByChunk);
+        Debug.Log("ProcessEvent_message_end: " + difyMessageByChunk);
+    }
 
     /// <summary>
     /// Process the TTS message event
@@ -224,20 +255,5 @@ public class DifyManager : MonoBehaviour
     {
         AudioClip audioClip = Mp3Handler.GetAudioClipFromMp3Buffer(true);
         if (audioClip != null) { audioClipQueue.Enqueue(audioClip); }
-    }
-
-    private async Task TextureUploadExample()
-    {
-        try
-        {
-            // Get texture of this GameObject
-            Texture2D texture = gameObject.GetComponent<Renderer>().material.mainTexture as Texture2D;
-            var response = await difyClient.UploadTexture2D(texture);
-            Debug.Log($"Received response: {response.id}");
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"An error occurred: {e.Message}");
-        }
     }
 }

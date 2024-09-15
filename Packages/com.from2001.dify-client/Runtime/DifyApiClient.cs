@@ -13,9 +13,9 @@ using System.Net.Http.Headers;
 
 public class DifyApiClient
 {
-    private string serverUrl;
-    private string apiKey;
-    private string user;
+    public string serverUrl { get; set; }
+    public string apiKey { get; set; }
+    public string user { get; set; }
     private string conversation_id = "";
 
     private static readonly HttpClient client = new HttpClient();
@@ -45,8 +45,6 @@ public class DifyApiClient
         return JsonConvert.DeserializeObject<T>(request.downloadHandler.text);
     }
 
-
-
     // public void ChatMessage_streaming(string query, string[] upload_file_ids = null, Dictionary<string, string> inputs = null)
     // {
     //     // https://chatgpt.com/c/4396d0e3-c27f-4b9a-9ddd-45509e27df47
@@ -65,17 +63,16 @@ public class DifyApiClient
     /// <summary>
     /// Start a streaming chat message to Dify API
     /// </summary>
-    /// <param name="query"></param>//  
+    /// <param name="query"></pa    /// //  
     public async void ChatMessage_streaming_start(string query, Texture2D texture = null)
     {
         if (texture == null)
         {
             cancellationTokenSource = new CancellationTokenSource();
-            // _ = Task.Run(() => ChatMessage_streaming(cancellationTokenSource.Token, query));
             _ = ChatMessage_streaming(cancellationTokenSource.Token, query);
         }
         else
-        {   
+        {
             cancellationTokenSource = new CancellationTokenSource();
             var fileUploadResponse = await UploadTexture2D(texture);
             _ = ChatMessage_streaming(cancellationTokenSource.Token, query, new string[] { fileUploadResponse.id });
@@ -150,16 +147,6 @@ public class DifyApiClient
     /// <param name="eventString"></param>//  
     private void ProcessEvent(string eventString)
     {
-        // workflow_started
-        // node_started
-        // node_finished
-        // message
-        // workflow_finished
-        // message_end"
-        // tts_message
-
-        // Debug.Log($"Received event: {eventString}");
-
         if (eventString.StartsWith("data:"))
         {
             var dataJsonString = eventString.Substring(5).Trim();
@@ -167,9 +154,28 @@ public class DifyApiClient
         }
     }
 
+    /// <summary>
+    /// Start a blocking chat message to Dify API
+    /// </summary>
+    /// <param name="query"></param>//  
+    public async Task<ChatCompletionResponse> ChatMessage_blocking_start(string query, Texture2D texture = null)
+    {
+        if (texture == null)
+        {
+            cancellationTokenSource = new CancellationTokenSource();
+            var response = await ChatMessage_blocking(query);
+            return response;
+        }
+        else
+        {
+            var fileUploadResponse = await UploadTexture2D(texture);
+            var response = await ChatMessage_blocking(query, new string[] { fileUploadResponse.id });
+            return response;
+        }
+    }
 
     /// <summary>
-    /// Send a chat message to Dify API
+    /// /// Send a chat message to Dify API
     /// </summary>
     public async Task<ChatCompletionResponse> ChatMessage_blocking(string query, string[] upload_file_ids = null, Dictionary<string, string> inputs = null)
     {

@@ -44,7 +44,8 @@ public class Mp3Handler : MonoBehaviour
         // Write frame data to a file
         string fileName = Guid.NewGuid().ToString() + ".mp3";
         string filePath = Path.Combine(Application.persistentDataPath, fileName);
-        Debug.Log($"Save MP3: {filePath}");
+        // Debug.Log($"Save MP3: {filePath}");
+
         if (bytesToWrite.Length == 0) return null;
         File.WriteAllBytes(filePath, bytesToWrite);
 
