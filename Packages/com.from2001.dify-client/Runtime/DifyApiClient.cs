@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Text;
 using System.Linq;
 using System.Net.Http;
@@ -18,8 +19,9 @@ public class DifyApiClient
     public string user { get; set; }
     private string conversation_id = "";
 
-    private static readonly HttpClient client = new HttpClient();
+    private static readonly HttpClient client = new();
     private CancellationTokenSource cancellationTokenSource;
+    private List<string> task_ids = new();
 
     public delegate void OnEventReceived(string eventData);
     public event OnEventReceived EventReceived;
@@ -31,6 +33,9 @@ public class DifyApiClient
         this.user = user;
     }
 
+    /// <summary>
+    /// Send a request to Dify API
+    /// </summary>
     private async Task<T> SendRequest<T>(UnityWebRequest request)
     {
         request.SetRequestHeader("Authorization", $"Bearer {apiKey}");
@@ -45,20 +50,21 @@ public class DifyApiClient
         return JsonConvert.DeserializeObject<T>(request.downloadHandler.text);
     }
 
-    // public void ChatMessage_streaming(string query, string[] upload_file_ids = null, Dictionary<string, string> inputs = null)
-    // {
-    //     // https://chatgpt.com/c/4396d0e3-c27f-4b9a-9ddd-45509e27df47
-    //     // https://chatgpt.com/share/63e45c87-f02f-4b8d-acb3-b099a5327063
-
-    // }
-
+    /// <summary>
+    /// Stop streaming chat messages
+    /// </summary>
     public void ChatMessage_streaming_stop()
     {
-        if(cancellationTokenSource != null){cancellationTokenSource.Cancel();}
+        if (cancellationTokenSource != null) { cancellationTokenSource.Cancel(); }
         Mp3Handler.ClearMp3Buffer();
 
         // Stop generating messages
-        // _ = StopGenerate(current_task_id);
+        foreach (var current_task_id in task_ids){
+            _ = StopGenerate(current_task_id);
+        }
+
+        // Clear task_ids
+        task_ids.Clear();
     }
 
     /// <summary>
@@ -89,6 +95,8 @@ public class DifyApiClient
     /// <returns></returns>//  
     public async Task ChatMessage_streaming(CancellationToken cancellationToken, string query, string[] upload_file_ids = null, Dictionary<string, string> inputs = null)
     {
+        // Send request and handle Server-sent events (SSE)
+
         string response_mode = "streaming";
         upload_file_ids ??= new string[0];
         string url = $"{serverUrl}/chat-messages";
@@ -149,8 +157,18 @@ public class DifyApiClient
     {
         if (eventString.StartsWith("data:"))
         {
-            var dataJsonString = eventString.Substring(5).Trim();
+            // Extract data from event string
+            var dataJsonString = eventString.Substring(5).Trim(); // Remove "data: " prefix
+            var dataJson = JObject.Parse(dataJsonString);
+
+            // Invoke event received
             EventReceived?.Invoke(dataJsonString);
+
+            // If task_id is received, store it
+            if (dataJson.TryGetValue("task_id", out var taskId) && !task_ids.Contains(taskId.ToString()))
+            {
+                task_ids.Add(taskId.ToString());
+            }
         }
     }
 
