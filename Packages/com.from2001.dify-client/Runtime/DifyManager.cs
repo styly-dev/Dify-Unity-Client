@@ -16,6 +16,9 @@ public class DifyManager : MonoBehaviour
     [SerializeField]
     private string difyUserId = "user-id";
 
+    [SerializeField]
+    private MicrophoneRecorderManager microphoneRecorderManager;
+
     public string DifyApiURL
     {
         get { return difyApiURL; }
@@ -65,7 +68,7 @@ public class DifyManager : MonoBehaviour
     private readonly Queue<AudioClip> audioClipQueue = new();
     private AudioSource difyAudioSource;
 
-    void Start()
+    void Awake()
     {
         Debug.Log("Starting DifyManager");
 
@@ -91,6 +94,10 @@ public class DifyManager : MonoBehaviour
         if (difyAudioSource == null) difyAudioSource = gameObject.AddComponent<AudioSource>();
         difyAudioSource.playOnAwake = false;
         difyAudioSource.loop = false;
+
+        // Initialize Microphone Recorder Manager
+        microphoneRecorderManager = gameObject.GetComponent<MicrophoneRecorderManager>();
+        if (microphoneRecorderManager == null) microphoneRecorderManager = gameObject.AddComponent<MicrophoneRecorderManager>();
     }
 
     /// <summary>
@@ -130,7 +137,7 @@ public class DifyManager : MonoBehaviour
     /// Send a chat message to Dify in streaming mode
     /// </summary>
     public void SendChatMessage_Streaming(string query, Texture2D texture = null)
-    {   
+    {
         StopStreaming();
         difyMessageByChunk = "";
         difyClient.ChatMessage_streaming_start(query, texture);
@@ -155,7 +162,8 @@ public class DifyManager : MonoBehaviour
         return response.answer;
     }
 
-    public void StopStreaming(){
+    public void StopStreaming()
+    {
 
         Debug.Log("Stopping Streaming.....");
 
@@ -281,4 +289,23 @@ public class DifyManager : MonoBehaviour
         AudioClip audioClip = Mp3Handler.GetAudioClipFromMp3Buffer(true);
         if (audioClip != null) { audioClipQueue.Enqueue(audioClip); }
     }
+
+    /// <summary>
+    /// Start the microphone
+    /// </summary>
+    public void StartMicrophone()
+    {
+        Debug.Log("Starting Microphone recording.....");
+        microphoneRecorderManager.StartMicrophone();
+    }
+
+    /// <summary>
+    /// Stop the microphone and return the AudioClip
+    /// </summary> 
+    public AudioClip StopMicrophone()
+    {
+        Debug.Log("Stopping Microphone recording.....");
+        return microphoneRecorderManager.StopMicrophone();
+    }
+
 }
