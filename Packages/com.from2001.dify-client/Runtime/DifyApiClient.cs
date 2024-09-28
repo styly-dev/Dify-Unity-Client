@@ -59,7 +59,8 @@ public class DifyApiClient
         Mp3Handler.ClearMp3Buffer();
 
         // Stop generating messages
-        foreach (var current_task_id in task_ids){
+        foreach (var current_task_id in task_ids)
+        {
             _ = StopGenerate(current_task_id);
         }
 
@@ -341,21 +342,23 @@ public class DifyApiClient
     }
 
     /// <summary>
-    /// Convert audio to text using Dify API
+    /// Convert audio(speech) to text using Dify API
     /// </summary>
-    public async Task<string> AudioToText(byte[] audioData, string fileName)
+    public async Task<string> AudioToText(AudioClip audio)
     {
         string url = $"{serverUrl}/audio-to-text";
 
-        WWWForm form = new WWWForm();
-        form.AddBinaryData("file", audioData, fileName);
-        form.AddField("user", user);
+        // Convert AudioClip to WAV byte array
+        byte[] wavData = Mp3Handler.ConvertAudioClipToWav(audio);
 
-        using (UnityWebRequest webRequest = UnityWebRequest.Post(url, form))
-        {
-            var ret = await SendRequest<AudioToTextResponse>(webRequest);
-            return ret.text;
-        }
+        WWWForm form = new();
+        form.AddBinaryData("file", wavData, "upload.wav", "audio/wav");
+
+        // Send request
+        UnityWebRequest webRequest = UnityWebRequest.Post(url, form);
+        var audioToTextResponse = await SendRequest<AudioToTextResponse>(webRequest);
+
+        return audioToTextResponse.text;
     }
 
     /// <summary>
@@ -540,5 +543,3 @@ public class AudioToTextResponse
 {
     public string text;
 }
-
-
