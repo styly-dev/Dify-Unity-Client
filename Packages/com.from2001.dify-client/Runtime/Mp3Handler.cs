@@ -7,7 +7,6 @@ using NLayer;
 
 public class Mp3Handler : MonoBehaviour
 {
-
     private static byte[] MP3Buffer = new byte[0];
     private static readonly object audioBufferLock = new();
 
@@ -277,4 +276,44 @@ public class Mp3Handler : MonoBehaviour
         return frameLength;
     }
 
+    /// <summary>
+    /// Convert AudioClip to WAV format
+    /// </summary> 
+    public static byte[] ConvertAudioClipToWav(AudioClip audioClip)
+    {
+        // Convert AudioClip to WAV format (this is a simplified version)
+        // You may need to adjust the conversion according to your requirements
+        int headerSize = 44;
+        byte[] wavData = new byte[audioClip.samples * audioClip.channels * 2 + headerSize];
+        int sampleRate = audioClip.frequency;
+        int channels = audioClip.channels;
+        float[] samples = new float[audioClip.samples * audioClip.channels];
+        audioClip.GetData(samples, 0);
+
+        // WAV header
+        System.Buffer.BlockCopy(System.Text.Encoding.UTF8.GetBytes("RIFF"), 0, wavData, 0, 4);
+        System.Buffer.BlockCopy(System.BitConverter.GetBytes(wavData.Length - 8), 0, wavData, 4, 4);
+        System.Buffer.BlockCopy(System.Text.Encoding.UTF8.GetBytes("WAVE"), 0, wavData, 8, 4);
+        System.Buffer.BlockCopy(System.Text.Encoding.UTF8.GetBytes("fmt "), 0, wavData, 12, 4);
+        System.Buffer.BlockCopy(System.BitConverter.GetBytes(16), 0, wavData, 16, 4); // Subchunk1Size (16 for PCM)
+        System.Buffer.BlockCopy(System.BitConverter.GetBytes((short)1), 0, wavData, 20, 2); // AudioFormat (1 for PCM)
+        System.Buffer.BlockCopy(System.BitConverter.GetBytes((short)channels), 0, wavData, 22, 2); // NumChannels
+        System.Buffer.BlockCopy(System.BitConverter.GetBytes(sampleRate), 0, wavData, 24, 4); // SampleRate
+        System.Buffer.BlockCopy(System.BitConverter.GetBytes(sampleRate * channels * 2), 0, wavData, 28, 4); // ByteRate
+        System.Buffer.BlockCopy(System.BitConverter.GetBytes((short)(channels * 2)), 0, wavData, 32, 2); // BlockAlign
+        System.Buffer.BlockCopy(System.BitConverter.GetBytes((short)16), 0, wavData, 34, 2); // BitsPerSample
+        System.Buffer.BlockCopy(System.Text.Encoding.UTF8.GetBytes("data"), 0, wavData, 36, 4);
+        System.Buffer.BlockCopy(System.BitConverter.GetBytes(samples.Length * 2), 0, wavData, 40, 4);
+
+        // WAV data
+        int offset = headerSize;
+        for (int i = 0; i < samples.Length; i++)
+        {
+            short sample = (short)(samples[i] * short.MaxValue);
+            System.Buffer.BlockCopy(System.BitConverter.GetBytes(sample), 0, wavData, offset, 2);
+            offset += 2;
+        }
+
+        return wavData;
+    }
 }

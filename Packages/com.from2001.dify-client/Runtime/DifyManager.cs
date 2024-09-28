@@ -183,6 +183,15 @@ public class DifyManager : MonoBehaviour
     }
 
     /// <summary>
+    /// Convert audio to text using Dify
+    /// <summary> 
+    public async Task<string> AudioToText(AudioClip audioClip)
+    {
+        var txt = await difyClient.AudioToText(audioClip);
+        return txt;
+    }
+
+    /// <summary>
     /// Callback for when an event is received
     /// </summary> 
     private void DifyOnStreamingEventReceivedCallBack(string jsonString)
