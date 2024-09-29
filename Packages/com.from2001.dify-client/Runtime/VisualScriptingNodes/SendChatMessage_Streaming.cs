@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using Unity.VisualScripting;
 using Unity.VisualScripting.FullSerializer;
@@ -154,10 +155,20 @@ public class SendChatMessage_Streaming : Unit
         // difyManager.Event_tts_message_end.AddListener((json) => { InvokeOutputTriggerEvent("tts_message_end", flow, json); });
 
         // Send the message to Dify
-        difyManager.SendChatMessage_Streaming(query, texture2D);
+        Task task = difyManager.SendChatMessage_Streaming(query, texture2D);
+        while (!task.IsCompleted) { yield return null; }
+        if(task.IsFaulted) { isProcessing = false; }
 
         // Wait until the message is finished
-        while (isProcessing) { yield return null; }
+        while (isProcessing)
+        {
+            Debug.Log("Processing...");
+
+            // wait for one second
+            yield return new WaitForSeconds(1);
+
+            yield return null;
+        }
 
         // Remove all listeners
         RemoveAllListeners(difyManager);
