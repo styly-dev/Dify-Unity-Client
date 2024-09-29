@@ -348,8 +348,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: de95c959c66b4424b9b4325c6136cc26, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  difyApiURL: http://34.84.98.90/v1
-  difyApiKey: app-OHYcZLsQbpKohzxunpUQOAKk
+  difyApiURL: 
+  difyApiKey: 
   difyUserId: user-id
   microphoneRecorderManager: {fileID: 0}
   OnDifyMessage:
