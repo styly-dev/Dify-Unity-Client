@@ -136,11 +136,19 @@ public class DifyManager : MonoBehaviour
     /// <summary>
     /// Send a chat message to Dify in streaming mode
     /// </summary>
-    public void SendChatMessage_Streaming(string query, Texture2D texture = null)
+    public async Task SendChatMessage_Streaming(string query, Texture2D texture = null)
     {
         StopStreaming();
         difyMessageByChunk = "";
-        difyClient.ChatMessage_streaming_start(query, texture);
+        try
+        {
+            await difyClient.ChatMessage_streaming_start(query, texture);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError(ex.Message);
+            throw(ex);
+        }
     }
 
     /// <summary>
@@ -271,7 +279,7 @@ public class DifyManager : MonoBehaviour
     /// </summary>
     private void ProcessEvent_tts_message(JObject json)
     {
-        Debug.Log("Processing TTS message: " + json);
+        // Debug.Log("Processing TTS message: " + json);
         lock (audioBufferLock)
         {
             string base64Chunk = json["audio"].ToString();
