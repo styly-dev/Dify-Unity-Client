@@ -71,18 +71,32 @@ public class DifyApiClient
     /// <summary>
     /// Start a streaming chat message to Dify API
     /// </summary>
-    public async void ChatMessage_streaming_start(string query, Texture2D texture = null)
+    public async Task ChatMessage_streaming_start(string query, Texture2D texture = null)
     {
-        if (texture == null)
+        if (query == null)
         {
-            cancellationTokenSource = new CancellationTokenSource();
-            _ = ChatMessage_streaming(cancellationTokenSource.Token, query);
+            Debug.LogError("Query is null");
+            throw new Exception("Query is null");
         }
-        else
+
+        try
         {
-            cancellationTokenSource = new CancellationTokenSource();
-            var fileUploadResponse = await UploadTexture2D(texture);
-            _ = ChatMessage_streaming(cancellationTokenSource.Token, query, new string[] { fileUploadResponse.id });
+            if (texture == null)
+            {
+                cancellationTokenSource = new CancellationTokenSource();
+                await ChatMessage_streaming(cancellationTokenSource.Token, query);
+            }
+            else
+            {
+                cancellationTokenSource = new CancellationTokenSource();
+                var fileUploadResponse = await UploadTexture2D(texture);
+                await ChatMessage_streaming(cancellationTokenSource.Token, query, new string[] { fileUploadResponse.id });
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError(ex.Message);
+            throw (ex);
         }
     }
 
@@ -147,6 +161,7 @@ public class DifyApiClient
         catch (Exception ex)
         {
             Debug.LogError($"Exception in SSE connection: {ex.Message}");
+            throw (ex);
         }
     }
 

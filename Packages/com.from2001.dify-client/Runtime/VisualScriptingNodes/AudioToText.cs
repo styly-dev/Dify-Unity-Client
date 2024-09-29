@@ -55,7 +55,8 @@ public class AudioToText : Unit
         Task<string> task = difyManager.AudioToText(audioClip);
         while (!task.IsCompleted) { yield return null; }
 
-        flow.SetValue(valueOutput_Text, task.Result);
+        flow.SetValue(valueOutput_Text, task.IsCompletedSuccessfully ? task.Result : null);
+
         yield return outputTrigger;
     }
 }
