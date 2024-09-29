@@ -12,5 +12,11 @@
     "email": "info@styly.inc",
     "url": "https://github.com/styly-dev"
   },
-  "samples": []
+  "samples": [
+    {
+      "displayName": "Usage samples",
+      "description": "Dify communication usage samples via Visual Scripting",
+      "path": "Samples~"
+    }
+  ]
 }

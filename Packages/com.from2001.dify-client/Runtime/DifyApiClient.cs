@@ -59,7 +59,8 @@ public class DifyApiClient
         Mp3Handler.ClearMp3Buffer();
 
         // Stop generating messages
-        foreach (var current_task_id in task_ids){
+        foreach (var current_task_id in task_ids)
+        {
             _ = StopGenerate(current_task_id);
         }
 
@@ -70,18 +71,32 @@ public class DifyApiClient
     /// <summary>
     /// Start a streaming chat message to Dify API
     /// </summary>
-    public async void ChatMessage_streaming_start(string query, Texture2D texture = null)
+    public async Task ChatMessage_streaming_start(string query, Texture2D texture = null)
     {
-        if (texture == null)
+        if (query == null)
         {
-            cancellationTokenSource = new CancellationTokenSource();
-            _ = ChatMessage_streaming(cancellationTokenSource.Token, query);
+            Debug.LogError("Query is null");
+            throw new Exception("Query is null");
         }
-        else
+
+        try
         {
-            cancellationTokenSource = new CancellationTokenSource();
-            var fileUploadResponse = await UploadTexture2D(texture);
-            _ = ChatMessage_streaming(cancellationTokenSource.Token, query, new string[] { fileUploadResponse.id });
+            if (texture == null)
+            {
+                cancellationTokenSource = new CancellationTokenSource();
+                await ChatMessage_streaming(cancellationTokenSource.Token, query);
+            }
+            else
+            {
+                cancellationTokenSource = new CancellationTokenSource();
+                var fileUploadResponse = await UploadTexture2D(texture);
+                await ChatMessage_streaming(cancellationTokenSource.Token, query, new string[] { fileUploadResponse.id });
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError(ex.Message);
+            throw (ex);
         }
     }
 
@@ -146,6 +161,7 @@ public class DifyApiClient
         catch (Exception ex)
         {
             Debug.LogError($"Exception in SSE connection: {ex.Message}");
+            throw (ex);
         }
     }
 
@@ -341,21 +357,23 @@ public class DifyApiClient
     }
 
     /// <summary>
-    /// Convert audio to text using Dify API
+    /// Convert audio(speech) to text using Dify API
     /// </summary>
-    public async Task<string> AudioToText(byte[] audioData, string fileName)
+    public async Task<string> AudioToText(AudioClip audio)
     {
         string url = $"{serverUrl}/audio-to-text";
 
-        WWWForm form = new WWWForm();
-        form.AddBinaryData("file", audioData, fileName);
-        form.AddField("user", user);
+        // Convert AudioClip to WAV byte array
+        byte[] wavData = Mp3Handler.ConvertAudioClipToWav(audio);
 
-        using (UnityWebRequest webRequest = UnityWebRequest.Post(url, form))
-        {
-            var ret = await SendRequest<AudioToTextResponse>(webRequest);
-            return ret.text;
-        }
+        WWWForm form = new();
+        form.AddBinaryData("file", wavData, "upload.wav", "audio/wav");
+
+        // Send request
+        UnityWebRequest webRequest = UnityWebRequest.Post(url, form);
+        var audioToTextResponse = await SendRequest<AudioToTextResponse>(webRequest);
+
+        return audioToTextResponse.text;
     }
 
     /// <summary>
@@ -540,5 +558,3 @@ public class AudioToTextResponse
 {
     public string text;
 }
-
-
