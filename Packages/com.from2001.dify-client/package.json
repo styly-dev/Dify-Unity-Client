@@ -1,6 +1,6 @@
 {
   "name": "com.styly.dify-client",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "displayName": "Dify Unity Client",
   "unity": "2022.1",
   "description": "Unity Client for Dify",

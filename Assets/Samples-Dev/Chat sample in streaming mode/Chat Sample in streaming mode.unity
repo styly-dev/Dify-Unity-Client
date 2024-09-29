@@ -348,8 +348,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: de95c959c66b4424b9b4325c6136cc26, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  difyApiURL: 
-  difyApiKey: 
+  difyApiURL: http://34.84.98.90/v1
+  difyApiKey: app-OHYcZLsQbpKohzxunpUQOAKk
   difyUserId: user-id
   microphoneRecorderManager: {fileID: 0}
   OnDifyMessage:
@@ -442,7 +442,7 @@ MonoBehaviour:
   _data:
     _json: '{"nest":{"source":"Macro","macro":0,"embed":null}}'
     _objectReferences:
-    - {fileID: 11400000, guid: ff6cf05cc336b4782865526a6bf26dbe, type: 2}
+    - {fileID: 11400000, guid: 99136d0f9aebc447388e44fbf82d2558, type: 2}
 --- !u!114 &850250861
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -736,5 +736,5 @@ SceneRoots:
   - {fileID: 1858886785}
   - {fileID: 632992461}
   - {fileID: 850250862}
-  - {fileID: 106530510}
   - {fileID: 1521660180}
+  - {fileID: 106530510}
