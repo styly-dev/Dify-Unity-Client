@@ -6,6 +6,7 @@ using Newtonsoft.Json.Linq;
 using System.Collections;
 using System.Text.RegularExpressions;
 using UnityEngine.Events;
+using UnityEngine.Networking;
 
 public class DifyManager : MonoBehaviour
 {
@@ -68,6 +69,10 @@ public class DifyManager : MonoBehaviour
     private readonly Queue<AudioClip> audioClipQueue = new();
     private AudioSource difyAudioSource;
 
+    // Google Text To Speech用のSentenceQueue
+    private readonly Queue<string> sentenceQueue = new();
+    private string difyMessageByChunkForSentenceQueue = "";
+
     void Awake()
     {
         Debug.Log("Starting DifyManager");
@@ -78,6 +83,9 @@ public class DifyManager : MonoBehaviour
         // Start continuous coroutine processes
         StartCoroutine(PlayAudioClipsContinuously());
         StartCoroutine(ProcessReceivedDataFromDifyInTheMainThread());
+
+        // Start coroutine for converting sentence to audio
+        StartCoroutine(ConvertSentenceToAudio());
     }
 
     /// <summary>
@@ -99,6 +107,39 @@ public class DifyManager : MonoBehaviour
         microphoneRecorderManager = gameObject.GetComponent<MicrophoneRecorderManager>();
         if (microphoneRecorderManager == null) microphoneRecorderManager = gameObject.AddComponent<MicrophoneRecorderManager>();
     }
+
+    /// <summary>
+    /// Convert the sentence to audio via Google Text To Speech API
+    /// </summary>
+    private IEnumerator ConvertSentenceToAudio()
+    {
+        string TextToSpeechApiURL = "http://34.85.124.203/TextToSpeech.php?text=";
+
+        while (true)
+        {
+            if (sentenceQueue.Count == 0) { yield return null; continue; }
+            string sentence = sentenceQueue.Dequeue();
+            string url = TextToSpeechApiURL + UnityWebRequest.EscapeURL(sentence);
+
+            // TextToSpeechApiURLはmp3を直接返してくるAPIです。AudioClipに格納する
+            using (UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip(url, AudioType.MPEG))
+            {
+                yield return www.SendWebRequest();
+                if (www.result != UnityWebRequest.Result.Success)
+                {
+                    Debug.LogError(www.error);
+                }
+                else
+                {
+                    AudioClip audioClip = DownloadHandlerAudioClip.GetContent(www);
+                    audioClipQueue.Enqueue(audioClip);
+                }
+            }
+
+            yield return null;
+        }
+    }
+
 
     /// <summary>
     /// Play the audio clips continuously
@@ -186,6 +227,10 @@ public class DifyManager : MonoBehaviour
         // Stop Audio
         difyAudioSource.Stop();
         difyAudioSource.clip = null;
+
+        // Clear variables for Google Text To Speech
+        sentenceQueue.Clear();
+        difyMessageByChunkForSentenceQueue = "";
     }
 
     /// <summary>
@@ -230,11 +275,11 @@ public class DifyManager : MonoBehaviour
                 break;
             case "tts_message":
                 Event_tts_message.Invoke(json);
-                ProcessEvent_tts_message(json);
+                // ProcessEvent_tts_message(json);
                 break;
             case "tts_message_end":
                 Event_tts_message_end.Invoke(json);
-                ProcessEvent_tts_message_end(json);
+                // ProcessEvent_tts_message_end(json);
                 break;
             case "message_replace":
                 Event_message_replace.Invoke(json);
@@ -267,11 +312,35 @@ public class DifyManager : MonoBehaviour
         string answer = Regex.Unescape(json["answer"].ToString()).Replace("\n", "");
         OnDifyMessageChunk.Invoke(answer);
         difyMessageByChunk += answer;
+
+        // Google Text To Speech用のSentenceQueueに追加
+        difyMessageByChunkForSentenceQueue += answer;
+        // difyMessageByChunkForSentenceQueueに「。」「！」「 」「\n」などの区切り文字が含まれている場合、区切り文字を含むその文字までの文字列をSentenceQueueに追加。difyMessageByChunkForSentenceQueueには区切り文字以降の文字列を格納。
+        string[] delimiters = { "。", "！", "？", "!", "?", " ", "\n" };
+        foreach (string delimiter in delimiters)
+        {
+            if (difyMessageByChunkForSentenceQueue.Contains(delimiter))
+            {
+                string[] sentences = difyMessageByChunkForSentenceQueue.Split(delimiter);
+                for (int i = 0; i < sentences.Length - 1; i++)
+                {
+                    sentenceQueue.Enqueue(sentences[i] + delimiter);
+                }
+                difyMessageByChunkForSentenceQueue = sentences[sentences.Length - 1];
+            }
+        }
     }
 
     private void ProcessEvent_message_end(JObject json)
     {
         OnDifyMessage.Invoke(difyMessageByChunk);
+
+        // Google Text To Speech用のSentenceQueueに追加
+        if (!string.IsNullOrEmpty(difyMessageByChunkForSentenceQueue))
+        {
+            sentenceQueue.Enqueue(difyMessageByChunkForSentenceQueue);
+            difyMessageByChunkForSentenceQueue = "";
+        }
     }
 
     /// <summary>
