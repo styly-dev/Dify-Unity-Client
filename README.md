@@ -28,7 +28,7 @@ A Unity package that provides seamless integration with [Dify](https://dify.ai/)
 2. Click the `+` button and select `Add package from git URL...`
 3. Enter the repository URL:
    ```
-   https://github.com/styly-dev/Dify-Unity-Client.git
+   https://github.com/styly-dev/Dify-Unity-Client.git?path=Packages/com.from2001.dify-client
    ```
 4. Click `Add`
 
