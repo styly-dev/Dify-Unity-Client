@@ -81,9 +81,18 @@ difyManager.StartMicrophone();
 // ... wait for user input ...
 AudioClip recording = difyManager.StopMicrophone();
 
+
 string transcription = await difyManager.AudioToText(recording);
 Debug.Log("Transcription: " + transcription);
 ```
+
+## Sample Scene
+
+The package includes a simple example scene that demonstrates streaming chat
+via Unity Visual Scripting. After installing the package, open
+`Chat Sample in streaming mode.unity` from
+`Packages/com.from2001.dify-client/Samples~/Chat sample in streaming mode`.
+This scene shows how to send a message and display the AI response in real time.
 
 ## Visual Scripting Usage
 
